@@ -1,0 +1,54 @@
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+import { Injectable } from '@nitrostack/core';
+import * as fs from 'fs';
+import * as path from 'path';
+let DataService = class DataService {
+    seedData = null;
+    loadSeedData() {
+        if (this.seedData) {
+            return this.seedData;
+        }
+        const seedPath = path.join(process.cwd(), 'fixtures', 'seed.json');
+        const rawData = fs.readFileSync(seedPath, 'utf-8');
+        this.seedData = JSON.parse(rawData);
+        return this.seedData;
+    }
+    getHospitals() {
+        const data = this.loadSeedData();
+        return data.hospitals;
+    }
+    getHospitalById(id) {
+        const data = this.loadSeedData();
+        return data.hospitals.find((h) => h.id === id);
+    }
+    getSpecialties() {
+        const data = this.loadSeedData();
+        return data.specialties;
+    }
+    getSpecialtyById(id) {
+        const data = this.loadSeedData();
+        return data.specialties.find((s) => s.id === id);
+    }
+    getDoctors() {
+        const data = this.loadSeedData();
+        return data.doctors;
+    }
+    getDoctorsBySpecialty(specialtyId) {
+        const data = this.loadSeedData();
+        return data.doctors.filter((d) => d.specialty === specialtyId);
+    }
+    getDoctorsByHospital(hospitalId) {
+        const data = this.loadSeedData();
+        return data.doctors.filter((d) => d.hospital === hospitalId);
+    }
+};
+DataService = __decorate([
+    Injectable()
+], DataService);
+export { DataService };
+//# sourceMappingURL=data.service.js.map
