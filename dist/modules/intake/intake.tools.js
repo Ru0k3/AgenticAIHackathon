@@ -10,6 +10,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 import { ToolDecorator as Tool, z, Injectable } from '@nitrostack/core';
 import { DataService } from '../../shared/services/data.service.js';
 let IntakeTools = class IntakeTools {
+let SubmitPatientIntakeTool = class SubmitPatientIntakeTool {
     dataService;
     constructor(dataService) {
         this.dataService = dataService;
@@ -50,27 +51,32 @@ let IntakeTools = class IntakeTools {
 __decorate([
     Tool({
         name: 'submit-patient-intake',
-        description: 'Submit patient intake with demographics and symptoms',
+        description: 'Submit a patient intake form with personal and medical information. Returns a unique patient ID.',
         inputSchema: z.object({
             name: z.string().describe('Patient full name'),
-            age: z.number().describe('Patient age in years'),
-            weight: z.number().describe('Patient weight in kg'),
-            patientId: z.string().describe('The unique ID of the patient'),
-            symptoms: z.array(z.string()).describe('List of symptoms reported by the patient'),
-            urgency: z.enum(['low', 'medium', 'high', 'critical']).describe('Calculated or reported urgency level')
+            age: z.number().int().min(0).max(150).describe('Patient age in years'),
+            weight: z.number().positive().describe('Patient weight in kg'),
+            symptoms: z.array(z.string()).describe('List of current symptoms'),
+            medicalHistory: z.object({
+                conditions: z.array(z.string()).optional().describe('Pre-existing medical conditions'),
+                medications: z.array(z.string()).optional().describe('Current medications'),
+                allergies: z.array(z.string()).optional().describe('Known allergies')
+            }).optional().describe('Optional medical history')
         }),
         examples: {
             request: {
                 name: 'John Doe',
-                age: 45,
+                age: 35,
                 weight: 75,
-                patientId: 'patient-001',
-                symptoms: ['chest pain', 'shortness of breath'],
-                urgency: 'high'
+                symptoms: ['fever', 'cough'],
+                medicalHistory: {
+                    conditions: ['hypertension'],
+                    medications: ['lisinopril'],
+                    allergies: ['penicillin']
+                }
             },
             response: {
-                success: true,
-                recordId: 'intake-001',
+                patientId: '550e8400-e29b-41d4-a716-446655440000',
                 message: 'Patient intake submitted successfully'
             }
         }
@@ -111,4 +117,10 @@ IntakeTools = __decorate([
     __metadata("design:paramtypes", [DataService])
 ], IntakeTools);
 export { IntakeTools };
+], GetPatientRecordTool.prototype, "getPatientRecord", null);
+GetPatientRecordTool = __decorate([
+    Injectable({ deps: [DataService] }),
+    __metadata("design:paramtypes", [DataService])
+], GetPatientRecordTool);
+export { GetPatientRecordTool };
 //# sourceMappingURL=intake.tools.js.map

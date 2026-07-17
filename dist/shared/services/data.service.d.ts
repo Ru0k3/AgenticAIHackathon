@@ -14,6 +14,22 @@ interface IntakeRecord {
 export declare class DataService {
     private seedData;
     private intakeRecords;
+export interface PatientRecord {
+    id: string;
+    name: string;
+    age: number;
+    weight: number;
+    symptoms: string[];
+    medicalHistory?: {
+        conditions?: string[];
+        medications?: string[];
+        allergies?: string[];
+    };
+    createdAt: string;
+}
+export declare class DataService {
+    private seedData;
+    private patients;
     private loadSeedData;
     getHospitals(): Hospital[];
     getHospitalById(id: string): Hospital | undefined;
@@ -33,6 +49,18 @@ export declare class DataService {
     }[];
     storeIntakeRecord(record: IntakeRecord): void;
     getIntakeRecord(recordId: string): IntakeRecord | undefined;
+    storePatientRecord(input: {
+        name: string;
+        age: number;
+        weight: number;
+        symptoms: string[];
+        medicalHistory?: {
+            conditions?: string[];
+            medications?: string[];
+            allergies?: string[];
+        };
+    }): string;
+    getPatientRecord(patientId: string): PatientRecord;
 }
 export {};
 //# sourceMappingURL=data.service.d.ts.map
