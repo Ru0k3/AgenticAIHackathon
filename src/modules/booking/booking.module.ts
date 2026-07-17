@@ -1,9 +1,11 @@
 import { Module } from '@nitrostack/core';
-import { BookingTools } from './booking.tools.js';
+import { ConfirmBookingChoiceTool, GenerateVisitSummaryTool } from './booking.tools.js';
+import { DataService } from '../../shared/services/data.service.js';
 
 @Module({
   name: 'booking',
-  description: 'Specialist medical appointments booking and confirmation',
-  controllers: [BookingTools]
+  description: 'Booking and appointment management',
+  controllers: [ConfirmBookingChoiceTool, GenerateVisitSummaryTool],
+  providers: [DataService]
 })
 export class BookingModule {}

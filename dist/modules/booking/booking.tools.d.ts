@@ -1,19 +1,40 @@
 import { ExecutionContext } from '@nitrostack/core';
-import { AppointmentService } from '../../shared/services/appointment.service.js';
 import { DataService } from '../../shared/services/data.service.js';
-export declare class BookingTools {
-    private appointmentService;
+export declare class ConfirmBookingChoiceTool {
     private dataService;
-    constructor(appointmentService: AppointmentService, dataService: DataService);
-    bookAppointment(input: any, context: ExecutionContext): Promise<{
-        id: string;
-        patientId: string;
+    constructor(dataService: DataService);
+    confirmBookingChoice(input: {
+        recordId: string;
+        doctorId: string;
+        hospitalId: string;
+        confirmed: boolean;
+    }, ctx: ExecutionContext): Promise<{
+        booked: boolean;
+        message: string;
+        bookingId?: undefined;
+        appointmentSlot?: undefined;
+    } | {
+        booked: boolean;
+        bookingId: string;
+        appointmentSlot: string;
+        message?: undefined;
+    }>;
+}
+export declare class GenerateVisitSummaryTool {
+    private dataService;
+    constructor(dataService: DataService);
+    generateVisitSummary(input: {
+        recordId: string;
+        bookingId: string;
+    }, ctx: ExecutionContext): Promise<{
+        name: string;
+        age: number;
+        weight: number;
+        symptoms: string[];
+        urgencyLevel: string;
         doctorName: string;
         hospitalName: string;
-        specialtyName: string;
-        dateTime: string;
-        status: "scheduled" | "completed" | "cancelled";
-        notes: string | undefined;
+        appointmentSlot: string;
     }>;
 }
 //# sourceMappingURL=booking.tools.d.ts.map
