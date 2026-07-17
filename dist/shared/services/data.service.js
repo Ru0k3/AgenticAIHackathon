@@ -10,6 +10,7 @@ import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 let DataService = class DataService {
     seedData = null;
+    intakeRecords = new Map();
     patients = new Map();
     loadSeedData() {
         if (this.seedData) {
@@ -69,6 +70,11 @@ let DataService = class DataService {
             };
         });
     }
+    storeIntakeRecord(record) {
+        this.intakeRecords.set(record.recordId, record);
+    }
+    getIntakeRecord(recordId) {
+        return this.intakeRecords.get(recordId);
     // Patient intake methods
     storePatientRecord(input) {
         const patientId = uuidv4();

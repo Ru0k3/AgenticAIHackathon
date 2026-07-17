@@ -9,16 +9,42 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 import { ToolDecorator as Tool, z, Injectable } from '@nitrostack/core';
 import { DataService } from '../../shared/services/data.service.js';
+let IntakeTools = class IntakeTools {
 let SubmitPatientIntakeTool = class SubmitPatientIntakeTool {
     dataService;
     constructor(dataService) {
         this.dataService = dataService;
     }
     async submitPatientIntake(input, ctx) {
-        const patientId = this.dataService.storePatientRecord(input);
+        const recordId = `intake-${Date.now()}`;
+        // Store intake record with all demographics
+        this.dataService.storeIntakeRecord({
+            recordId,
+            name: input.name,
+            age: input.age,
+            weight: input.weight,
+            patientId: input.patientId,
+            symptoms: input.symptoms,
+            urgency: input.urgency,
+            timestamp: new Date().toISOString()
+        });
         return {
-            patientId,
+            success: true,
+            recordId,
             message: 'Patient intake submitted successfully'
+        };
+    }
+    async getPatientRecord(input, ctx) {
+        const record = this.dataService.getIntakeRecord(input.recordId);
+        if (!record) {
+            return {
+                success: false,
+                error: `No intake record found with recordId: ${input.recordId}`
+            };
+        }
+        return {
+            success: true,
+            ...record
         };
     }
 };
@@ -58,54 +84,39 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
-], SubmitPatientIntakeTool.prototype, "submitPatientIntake", null);
-SubmitPatientIntakeTool = __decorate([
-    Injectable({ deps: [DataService] }),
-    __metadata("design:paramtypes", [DataService])
-], SubmitPatientIntakeTool);
-export { SubmitPatientIntakeTool };
-let GetPatientRecordTool = class GetPatientRecordTool {
-    dataService;
-    constructor(dataService) {
-        this.dataService = dataService;
-    }
-    async getPatientRecord(input, ctx) {
-        try {
-            const record = this.dataService.getPatientRecord(input.patientId);
-            return record;
-        }
-        catch (error) {
-            throw new Error(`Failed to retrieve patient record: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        }
-    }
-};
+], IntakeTools.prototype, "submitPatientIntake", null);
 __decorate([
     Tool({
         name: 'get-patient-record',
-        description: 'Retrieve a stored patient record by patient ID.',
+        description: 'Retrieve a stored patient intake record by recordId',
         inputSchema: z.object({
-            patientId: z.string().uuid().describe('The unique patient ID')
+            recordId: z.string().describe('The unique ID of the intake record to retrieve')
         }),
         examples: {
-            request: { patientId: '550e8400-e29b-41d4-a716-446655440000' },
+            request: {
+                recordId: 'intake-001'
+            },
             response: {
-                id: '550e8400-e29b-41d4-a716-446655440000',
+                recordId: 'intake-001',
                 name: 'John Doe',
-                age: 35,
+                age: 45,
                 weight: 75,
-                symptoms: ['fever', 'cough'],
-                medicalHistory: {
-                    conditions: ['hypertension'],
-                    medications: ['lisinopril'],
-                    allergies: ['penicillin']
-                },
-                createdAt: '2026-07-17T12:00:00.000Z'
+                patientId: 'patient-001',
+                symptoms: ['chest pain', 'shortness of breath'],
+                urgency: 'high',
+                timestamp: '2024-01-15T10:30:00Z'
             }
         }
     }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
+], IntakeTools.prototype, "getPatientRecord", null);
+IntakeTools = __decorate([
+    Injectable({ deps: [DataService] }),
+    __metadata("design:paramtypes", [DataService])
+], IntakeTools);
+export { IntakeTools };
 ], GetPatientRecordTool.prototype, "getPatientRecord", null);
 GetPatientRecordTool = __decorate([
     Injectable({ deps: [DataService] }),

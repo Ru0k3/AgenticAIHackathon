@@ -12,6 +12,15 @@ interface SeedData {
   doctors: Doctor[];
 }
 
+interface IntakeRecord {
+  recordId: string;
+  name: string;
+  age: number;
+  weight: number;
+  patientId: string;
+  symptoms: string[];
+  urgency: string;
+  timestamp: string;
 export interface PatientRecord {
   id: string;
   name: string;
@@ -29,6 +38,7 @@ export interface PatientRecord {
 @Injectable()
 export class DataService {
   private seedData: SeedData | null = null;
+  private intakeRecords: Map<string, IntakeRecord> = new Map();
   private patients: Map<string, PatientRecord> = new Map();
 
   private loadSeedData(): SeedData {
@@ -104,6 +114,12 @@ export class DataService {
     });
   }
 
+  storeIntakeRecord(record: IntakeRecord): void {
+    this.intakeRecords.set(record.recordId, record);
+  }
+
+  getIntakeRecord(recordId: string): IntakeRecord | undefined {
+    return this.intakeRecords.get(recordId);
   // Patient intake methods
   storePatientRecord(input: {
     name: string;

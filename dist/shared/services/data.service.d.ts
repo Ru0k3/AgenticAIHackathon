@@ -1,6 +1,19 @@
 import { Hospital } from '../schemas/hospital.schema.js';
 import { Specialty } from '../schemas/specialty.schema.js';
 import { Doctor } from '../schemas/doctor.schema.js';
+interface IntakeRecord {
+    recordId: string;
+    name: string;
+    age: number;
+    weight: number;
+    patientId: string;
+    symptoms: string[];
+    urgency: string;
+    timestamp: string;
+}
+export declare class DataService {
+    private seedData;
+    private intakeRecords;
 export interface PatientRecord {
     id: string;
     name: string;
@@ -34,6 +47,8 @@ export declare class DataService {
         hospitalName: string;
         imageUrl: string;
     }[];
+    storeIntakeRecord(record: IntakeRecord): void;
+    getIntakeRecord(recordId: string): IntakeRecord | undefined;
     storePatientRecord(input: {
         name: string;
         age: number;
@@ -47,4 +62,5 @@ export declare class DataService {
     }): string;
     getPatientRecord(patientId: string): PatientRecord;
 }
+export {};
 //# sourceMappingURL=data.service.d.ts.map

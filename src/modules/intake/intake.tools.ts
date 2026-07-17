@@ -37,24 +37,63 @@ export class SubmitPatientIntakeTool {
       }
     }
   })
-  async submitPatientIntake(
-    input: {
-      name: string;
-      age: number;
-      weight: number;
-      symptoms: string[];
-      medicalHistory?: {
-        conditions?: string[];
-        medications?: string[];
-        allergies?: string[];
-      };
-    },
-    ctx: ExecutionContext
-  ) {
-    const patientId = this.dataService.storePatientRecord(input);
+  async submitPatientIntake(input: any, ctx: ExecutionContext) {
+    const recordId = `intake-${Date.now()}`;
+    
+    // Store intake record with all demographics
+    this.dataService.storeIntakeRecord({
+      recordId,
+      name: input.name,
+      age: input.age,
+      weight: input.weight,
+      patientId: input.patientId,
+      symptoms: input.symptoms,
+      urgency: input.urgency,
+      timestamp: new Date().toISOString()
+    });
+    
     return {
-      patientId,
+      success: true,
+      recordId,
       message: 'Patient intake submitted successfully'
+    };
+  }
+
+  @Tool({
+    name: 'get-patient-record',
+    description: 'Retrieve a stored patient intake record by recordId',
+    inputSchema: z.object({
+      recordId: z.string().describe('The unique ID of the intake record to retrieve')
+    }),
+    examples: {
+      request: {
+        recordId: 'intake-001'
+      },
+      response: {
+        recordId: 'intake-001',
+        name: 'John Doe',
+        age: 45,
+        weight: 75,
+        patientId: 'patient-001',
+        symptoms: ['chest pain', 'shortness of breath'],
+        urgency: 'high',
+        timestamp: '2024-01-15T10:30:00Z'
+      }
+    }
+  })
+  async getPatientRecord(input: any, ctx: ExecutionContext) {
+    const record = this.dataService.getIntakeRecord(input.recordId);
+    
+    if (!record) {
+      return {
+        success: false,
+        error: `No intake record found with recordId: ${input.recordId}`
+      };
+    }
+    
+    return {
+      success: true,
+      ...record
     };
   }
 }
