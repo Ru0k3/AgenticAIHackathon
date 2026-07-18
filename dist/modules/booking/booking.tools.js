@@ -7,76 +7,163 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { ToolDecorator as Tool, z, Injectable, Widget } from '@nitrostack/core';
-import { AppointmentService } from '../../shared/services/appointment.service.js';
+import { ToolDecorator as Tool, z, Injectable } from '@nitrostack/core';
 import { DataService } from '../../shared/services/data.service.js';
-let BookingTools = class BookingTools {
-    appointmentService;
+// Helper function to generate next weekday 10:00 AM slot
+function generateNextWeekdaySlot() {
+    const now = new Date();
+    const nextDay = new Date(now);
+    nextDay.setDate(nextDay.getDate() + 1);
+    // Skip weekends (0 = Sunday, 6 = Saturday)
+    while (nextDay.getDay() === 0 || nextDay.getDay() === 6) {
+        nextDay.setDate(nextDay.getDate() + 1);
+    }
+    // Set time to 10:00 AM
+    nextDay.setHours(10, 0, 0, 0);
+    return nextDay.toISOString();
+}
+let ConfirmBookingChoiceTool = class ConfirmBookingChoiceTool {
     dataService;
-    constructor(appointmentService, dataService) {
-        this.appointmentService = appointmentService;
+    constructor(dataService) {
         this.dataService = dataService;
     }
-    async bookAppointment(input, context) {
-        const apt = this.appointmentService.bookAppointment(input);
-        // Resolve names for the booking-confirmation card
-        const doctor = this.dataService.getDoctors().find(d => d.id === input.doctorId);
-        const hospital = this.dataService.getHospitalById(input.hospitalId);
-        const specialty = this.dataService.getSpecialtyById(input.specialtyId);
-        return {
-            id: apt.id,
-            patientId: apt.patientId,
-            doctorName: doctor ? doctor.name : 'Unknown Doctor',
-            hospitalName: hospital ? hospital.name : 'Unknown Hospital',
-            specialtyName: specialty ? specialty.name : 'Unknown Specialty',
-            dateTime: apt.dateTime,
-            status: apt.status,
-            notes: apt.notes
-        };
+    async confirmBookingChoice(input, ctx) {
+        if (!input.confirmed) {
+            return {
+                booked: false,
+                message: 'No booking made. You can choose a different option.'
+            };
+        }
+        try {
+            const appointmentSlot = generateNextWeekdaySlot();
+            const bookingId = this.dataService.storeBooking({
+                recordId: input.recordId,
+                doctorId: input.doctorId,
+                hospitalId: input.hospitalId,
+                appointmentSlot
+            });
+            return {
+                booked: true,
+                bookingId,
+                appointmentSlot
+            };
+        }
+        catch (error) {
+            ctx.logger.error('Error confirming booking', {
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+            throw new Error('Failed to confirm booking');
+        }
     }
 };
 __decorate([
     Tool({
-        name: 'book-appointment',
-        description: 'Book a new medical appointment with a specialist doctor',
+        name: 'confirm-booking-choice',
+        description: 'Confirm or reject a doctor/hospital booking choice. If confirmed, creates a booking with a next-weekday 10:00 AM appointment slot.',
         inputSchema: z.object({
-            patientId: z.string().describe('The unique ID of the patient (e.g. patient-001)'),
-            doctorId: z.string().describe('The ID of the doctor (e.g. doctor-001)'),
-            hospitalId: z.string().describe('The ID of the hospital (e.g. hospital-001)'),
-            specialtyId: z.string().describe('The ID of the specialty (e.g. cardiology)'),
-            dateTime: z.string().describe('ISO Date String of the appointment time (e.g. 2026-07-18T10:00:00Z)'),
-            notes: z.string().optional().describe('Optional notes/symptoms for the visit')
+            recordId: z.string().describe('The intake record ID'),
+            doctorId: z.string().describe('The selected doctor ID'),
+            hospitalId: z.string().describe('The selected hospital ID'),
+            confirmed: z.boolean().describe('Whether the user confirmed the booking choice')
         }),
         examples: {
             request: {
-                patientId: 'patient-001',
-                doctorId: 'doctor-001',
-                hospitalId: 'hospital-001',
-                specialtyId: 'cardiology',
-                dateTime: '2026-07-18T10:00:00Z',
-                notes: 'Cardiology follow-up'
+                recordId: 'intake-001',
+                doctorId: 'doc-001',
+                hospitalId: 'hosp-001',
+                confirmed: true
             },
             response: {
-                id: 'apt-xyz',
-                patientId: 'patient-001',
-                doctorName: 'Dr. Sarah Mitchell',
-                hospitalName: 'Metropolitan Medical Center',
-                specialtyName: 'Cardiology',
-                dateTime: '2026-07-18T10:00:00Z',
-                status: 'scheduled',
-                notes: 'Cardiology follow-up'
+                booked: true,
+                bookingId: 'booking-1234567890',
+                appointmentSlot: '2026-07-21T10:00:00.000Z'
             }
         }
     }),
-    Widget({ route: 'booking-confirmation' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
-], BookingTools.prototype, "bookAppointment", null);
-BookingTools = __decorate([
-    Injectable({ deps: [AppointmentService, DataService] }),
-    __metadata("design:paramtypes", [AppointmentService,
-        DataService])
-], BookingTools);
-export { BookingTools };
+], ConfirmBookingChoiceTool.prototype, "confirmBookingChoice", null);
+ConfirmBookingChoiceTool = __decorate([
+    Injectable({ deps: [DataService] }),
+    __metadata("design:paramtypes", [DataService])
+], ConfirmBookingChoiceTool);
+export { ConfirmBookingChoiceTool };
+let GenerateVisitSummaryTool = class GenerateVisitSummaryTool {
+    dataService;
+    constructor(dataService) {
+        this.dataService = dataService;
+    }
+    async generateVisitSummary(input, ctx) {
+        try {
+            // Fetch intake record
+            const intakeRecord = this.dataService.getIntakeRecord(input.recordId);
+            if (!intakeRecord) {
+                throw new Error(`Intake record not found: ${input.recordId}`);
+            }
+            // Fetch booking
+            const booking = this.dataService.getBooking(input.bookingId);
+            if (!booking) {
+                throw new Error(`Booking not found: ${input.bookingId}`);
+            }
+            // Look up doctor name
+            const allDoctors = this.dataService.getDoctors();
+            const doctor = allDoctors.find((d) => d.id === booking.doctorId);
+            const doctorName = doctor ? doctor.name : 'Unknown Doctor';
+            // Look up hospital name
+            const hospital = this.dataService.getHospitalById(booking.hospitalId);
+            const hospitalName = hospital ? hospital.name : 'Unknown Hospital';
+            return {
+                name: intakeRecord.name,
+                age: intakeRecord.age,
+                weight: intakeRecord.weight,
+                symptoms: intakeRecord.symptoms,
+                urgencyLevel: intakeRecord.urgency,
+                doctorName,
+                hospitalName,
+                appointmentSlot: booking.appointmentSlot
+            };
+        }
+        catch (error) {
+            ctx.logger.error('Error generating visit summary', {
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+            throw new Error('Failed to generate visit summary');
+        }
+    }
+};
+__decorate([
+    Tool({
+        name: 'generate-visit-summary',
+        description: 'Generate a comprehensive visit summary combining intake, triage, and booking information.',
+        inputSchema: z.object({
+            recordId: z.string().describe('The intake record ID'),
+            bookingId: z.string().describe('The booking ID')
+        }),
+        examples: {
+            request: {
+                recordId: 'intake-001',
+                bookingId: 'booking-1234567890'
+            },
+            response: {
+                name: 'John Doe',
+                age: 35,
+                weight: 75,
+                symptoms: ['fever', 'cough'],
+                urgencyLevel: 'moderate',
+                doctorName: 'Dr. Jane Smith',
+                hospitalName: 'City Medical Center',
+                appointmentSlot: '2026-07-21T10:00:00.000Z'
+            }
+        }
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], GenerateVisitSummaryTool.prototype, "generateVisitSummary", null);
+GenerateVisitSummaryTool = __decorate([
+    Injectable({ deps: [DataService] }),
+    __metadata("design:paramtypes", [DataService])
+], GenerateVisitSummaryTool);
+export { GenerateVisitSummaryTool };
 //# sourceMappingURL=booking.tools.js.map

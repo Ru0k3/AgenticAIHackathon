@@ -37,11 +37,21 @@ export interface PatientRecord {
   createdAt: string;
 }
 
+interface Booking {
+  bookingId: string;
+  recordId: string;
+  doctorId: string;
+  hospitalId: string;
+  appointmentSlot: string;
+  createdAt: string;
+}
+
 @Injectable()
 export class DataService {
   private seedData: SeedData | null = null;
   private intakeRecords: Map<string, IntakeRecord> = new Map();
   private patients: Map<string, PatientRecord> = new Map();
+  private bookings: Map<string, Booking> = new Map();
 
   private loadSeedData(): SeedData {
     if (this.seedData) {
@@ -92,16 +102,16 @@ export class DataService {
   searchDoctors(specialtyQuery: string) {
     const data = this.loadSeedData();
     const query = specialtyQuery.toLowerCase();
-    
+
     // Find matching specialty
     const specialty = data.specialties.find(
       (s) => s.id.toLowerCase() === query || s.name.toLowerCase() === query
     );
-    
+
     if (!specialty) return [];
-    
+
     const doctors = data.doctors.filter((d) => d.specialty === specialty.id);
-    
+
     return doctors.map((d) => {
       const hospital = data.hospitals.find((h) => h.id === d.hospital);
       return {
@@ -156,5 +166,27 @@ export class DataService {
       throw new Error(`Patient record not found for ID: ${patientId}`);
     }
     return record;
+  }
+
+  storeBooking(input: {
+    recordId: string;
+    doctorId: string;
+    hospitalId: string;
+    appointmentSlot: string;
+  }): string {
+    const bookingId = `booking-${Date.now()}`;
+    this.bookings.set(bookingId, {
+      bookingId,
+      recordId: input.recordId,
+      doctorId: input.doctorId,
+      hospitalId: input.hospitalId,
+      appointmentSlot: input.appointmentSlot,
+      createdAt: new Date().toISOString()
+    });
+    return bookingId;
+  }
+
+  getBooking(bookingId: string): Booking | undefined {
+    return this.bookings.get(bookingId);
   }
 }

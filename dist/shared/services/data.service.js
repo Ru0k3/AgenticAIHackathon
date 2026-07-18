@@ -12,6 +12,7 @@ let DataService = class DataService {
     seedData = null;
     intakeRecords = new Map();
     patients = new Map();
+    bookings = new Map();
     loadSeedData() {
         if (this.seedData) {
             return this.seedData;
@@ -97,6 +98,21 @@ let DataService = class DataService {
             throw new Error(`Patient record not found for ID: ${patientId}`);
         }
         return record;
+    }
+    storeBooking(input) {
+        const bookingId = `booking-${Date.now()}`;
+        this.bookings.set(bookingId, {
+            bookingId,
+            recordId: input.recordId,
+            doctorId: input.doctorId,
+            hospitalId: input.hospitalId,
+            appointmentSlot: input.appointmentSlot,
+            createdAt: new Date().toISOString()
+        });
+        return bookingId;
+    }
+    getBooking(bookingId) {
+        return this.bookings.get(bookingId);
     }
 };
 DataService = __decorate([

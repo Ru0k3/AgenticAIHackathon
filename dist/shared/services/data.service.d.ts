@@ -24,10 +24,19 @@ export interface PatientRecord {
     };
     createdAt: string;
 }
+interface Booking {
+    bookingId: string;
+    recordId: string;
+    doctorId: string;
+    hospitalId: string;
+    appointmentSlot: string;
+    createdAt: string;
+}
 export declare class DataService {
     private seedData;
     private intakeRecords;
     private patients;
+    private bookings;
     private loadSeedData;
     getHospitals(): Hospital[];
     getHospitalById(id: string): Hospital | undefined;
@@ -59,6 +68,13 @@ export declare class DataService {
         };
     }): string;
     getPatientRecord(patientId: string): PatientRecord;
+    storeBooking(input: {
+        recordId: string;
+        doctorId: string;
+        hospitalId: string;
+        appointmentSlot: string;
+    }): string;
+    getBooking(bookingId: string): Booking | undefined;
 }
 export {};
 //# sourceMappingURL=data.service.d.ts.map
