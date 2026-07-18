@@ -2,19 +2,22 @@ import { ToolDecorator as Tool, z, ExecutionContext, Injectable } from '@nitrost
 import { DataService } from '../../shared/services/data.service.js';
 import { MedicationReferenceService } from '../../shared/services/medication-reference.service.js';
 import { RareDiseaseRegistryService } from '../../shared/services/rare-disease-registry.service.js';
+import { DataLoaderService } from '../../shared/services/data-loader.service.js';
 
 /**
  * Reference Tools
  * 
  * Tools for fetching detailed facility and specialty information,
- * auditing medication safety, and querying rare disease treatment registries
+ * auditing medication safety, querying rare disease treatment registries,
+ * and checking patient drug interactions from CSV data
  */
-@Injectable({ deps: [DataService, MedicationReferenceService, RareDiseaseRegistryService] })
+@Injectable({ deps: [DataService, MedicationReferenceService, RareDiseaseRegistryService, DataLoaderService] })
 export class ReferenceTools {
   constructor(
     private dataService: DataService,
     private medicationReferenceService: MedicationReferenceService,
     private rareDiseaseRegistryService: RareDiseaseRegistryService,
+    private dataLoaderService: DataLoaderService,
   ) {}
 
   @Tool({
@@ -260,6 +263,110 @@ export class ReferenceTools {
         ),
       },
       lastUpdated: registryEntry.lastUpdated,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  @Tool({
+    name: 'check-patient-drug-interactions',
+    description:
+      'Check for drug-to-drug interactions for a specific patient based on their prescribed medications. Cross-references the patient\'s drug list against the comprehensive drug interaction database. Returns flagged interactions with severity levels and clinical descriptions.',
+    inputSchema: z.object({
+      patientId: z.string().describe('The patient ID to check'),
+      prescribedDrugs: z.array(z.string()).describe('Array of drug names the patient is currently taking or being prescribed'),
+    }),
+  })
+  async checkPatientDrugInteractions(
+    input: { patientId: string; prescribedDrugs: string[] },
+    context: ExecutionContext,
+  ) {
+    // Validate inputs
+    if (!input.patientId || !input.prescribedDrugs || input.prescribedDrugs.length === 0) {
+      return {
+        status: 'error',
+        message: 'patientId and non-empty prescribedDrugs array are required',
+        patientId: input.patientId,
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    // Get patient arrival record for context
+    const patientRecord = this.dataLoaderService.getPatientRecord(input.patientId);
+
+    // Find all interactions between prescribed drugs
+    const interactions: Array<{
+      drug1: string;
+      drug2: string;
+      description: string;
+      severity: 'low' | 'moderate' | 'high' | 'critical';
+    }> = [];
+
+    for (let i = 0; i < input.prescribedDrugs.length; i++) {
+      for (let j = i + 1; j < input.prescribedDrugs.length; j++) {
+        const drug1 = input.prescribedDrugs[i];
+        const drug2 = input.prescribedDrugs[j];
+
+        const foundInteractions = this.dataLoaderService.getDrugInteractions(drug1, drug2);
+
+        if (foundInteractions.length > 0) {
+          for (const interaction of foundInteractions) {
+            // Determine severity based on description keywords
+            let severity: 'low' | 'moderate' | 'high' | 'critical' = 'moderate';
+            const desc = interaction.description.toLowerCase();
+
+            if (desc.includes('contraindicated') || desc.includes('severe') || desc.includes('fatal')) {
+              severity = 'critical';
+            } else if (desc.includes('significant') || desc.includes('major')) {
+              severity = 'high';
+            } else if (desc.includes('minor') || desc.includes('mild')) {
+              severity = 'low';
+            }
+
+            interactions.push({
+              drug1: interaction.drug1,
+              drug2: interaction.drug2,
+              description: interaction.description,
+              severity,
+            });
+          }
+        }
+      }
+    }
+
+    // Determine overall status
+    const hasCritical = interactions.some((i) => i.severity === 'critical');
+    const hasHigh = interactions.some((i) => i.severity === 'high');
+    const status = hasCritical ? 'critical' : hasHigh ? 'warning' : interactions.length > 0 ? 'caution' : 'safe';
+
+    return {
+      status,
+      patientId: input.patientId,
+      patientRecord: patientRecord
+        ? {
+            age: patientRecord.age,
+            arrivalMode: patientRecord.arrival_mode,
+            arrivalHour: patientRecord.arrival_hour,
+            shift: patientRecord.shift,
+            site: patientRecord.site_id,
+          }
+        : null,
+      prescribedDrugs: input.prescribedDrugs,
+      interactions,
+      summary: {
+        totalInteractions: interactions.length,
+        criticalCount: interactions.filter((i) => i.severity === 'critical').length,
+        highCount: interactions.filter((i) => i.severity === 'high').length,
+        moderateCount: interactions.filter((i) => i.severity === 'moderate').length,
+        lowCount: interactions.filter((i) => i.severity === 'low').length,
+      },
+      recommendation:
+        hasCritical
+          ? '⚠️ CRITICAL: Do not prescribe this combination. Consult with pharmacist immediately.'
+          : hasHigh
+            ? '⚠️ HIGH RISK: Review interactions carefully before prescribing. Consider alternative medications.'
+            : interactions.length > 0
+              ? '⚠️ CAUTION: Monitor patient closely for adverse effects.'
+              : '✓ No significant interactions detected.',
       timestamp: new Date().toISOString(),
     };
   }
