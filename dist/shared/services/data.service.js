@@ -46,6 +46,14 @@ let DataService = class DataService {
         const data = this.loadSeedData();
         return data.doctors.filter((d) => d.hospital === hospitalId);
     }
+    getPatientHistories() {
+        const data = this.loadSeedData();
+        return data.patientHistories;
+    }
+    getPatientHistoryById(patientId) {
+        const data = this.loadSeedData();
+        return data.patientHistories.find((ph) => ph.patientId === patientId);
+    }
 };
 DataService = __decorate([
     Injectable()

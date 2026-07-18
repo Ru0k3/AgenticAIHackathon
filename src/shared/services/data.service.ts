@@ -4,11 +4,13 @@ import * as path from 'path';
 import { Hospital } from '../schemas/hospital.schema.js';
 import { Specialty } from '../schemas/specialty.schema.js';
 import { Doctor } from '../schemas/doctor.schema.js';
+import { PatientHistory } from '../schemas/patient-history.schema.js';
 
 interface SeedData {
   hospitals: Hospital[];
   specialties: Specialty[];
   doctors: Doctor[];
+  patientHistories: PatientHistory[];
 }
 
 @Injectable()
@@ -59,5 +61,15 @@ export class DataService {
   getDoctorsByHospital(hospitalId: string): Doctor[] {
     const data = this.loadSeedData();
     return data.doctors.filter((d) => d.hospital === hospitalId);
+  }
+
+  getPatientHistories(): PatientHistory[] {
+    const data = this.loadSeedData();
+    return data.patientHistories;
+  }
+
+  getPatientHistoryById(patientId: string): PatientHistory | undefined {
+    const data = this.loadSeedData();
+    return data.patientHistories.find((ph) => ph.patientId === patientId);
   }
 }

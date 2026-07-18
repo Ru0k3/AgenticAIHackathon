@@ -11,18 +11,18 @@ export declare const AppointmentSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     status: "scheduled" | "completed" | "cancelled";
     id: string;
+    patientId: string;
     hospitalId: string;
     specialtyId: string;
-    patientId: string;
     doctorId: string;
     dateTime: string;
     notes?: string | undefined;
 }, {
     status: "scheduled" | "completed" | "cancelled";
     id: string;
+    patientId: string;
     hospitalId: string;
     specialtyId: string;
-    patientId: string;
     doctorId: string;
     dateTime: string;
     notes?: string | undefined;
