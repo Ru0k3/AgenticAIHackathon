@@ -9,6 +9,7 @@ import { RedFlag } from './triage-rules.js';
  */
 export interface AnalyzeSymptomsInput {
   patientId: string;
+  recordId?: string;
   symptomDescription: string;
 }
 
@@ -27,6 +28,7 @@ export interface CandidateCondition {
  */
 export interface SymptomAnalysisResult {
   patientId: string;
+  recordId?: string;
   symptomDescription: string;
   detectedRedFlags: RedFlag[];
   candidateConditions: CandidateCondition[];
@@ -38,6 +40,7 @@ export interface SymptomAnalysisResult {
  * Input for score-urgency tool
  */
 export interface ScoreUrgencyInput {
+  recordId?: string;
   analysis: SymptomAnalysisResult;
 }
 
@@ -45,6 +48,7 @@ export interface ScoreUrgencyInput {
  * Output from score-urgency tool
  */
 export interface UrgencyResult {
+  recordId?: string;
   urgencyLevel: 'low' | 'medium' | 'high' | 'emergency';
   severityScore: number; // 0-1 scale
   rationale: string;
