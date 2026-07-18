@@ -1,4 +1,5 @@
 .env
 node_modules/
 src/widgets/node_modules/
+src/widgets/.next/
 .nitrostudio/
